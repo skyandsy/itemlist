@@ -1,0 +1,109 @@
+<%provide :title, "Post an Item" %>
+<script>
+var lng;
+var lat;
+var i_map;
+function initMap() {
+    if(navigator.geolocation) {
+        i_map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 15,
+                //center: {lat: -34.397, lng: 150.644}
+            });
+
+        navigator.geolocation.getCurrentPosition(function (position) {
+            var geolocate = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+            i_map.setCenter(geolocate);
+        });
+
+        var geocoder = new google.maps.Geocoder();
+        document.getElementById('locate').addEventListener('click', function() {
+            geocodeAddress(geocoder, i_map);
+        });
+    } else {
+        document.getElementById('map').innerHTML="No Geolocation Support";
+    }
+}
+
+function geocodeAddress(geocoder, resultsMap) {
+    var address = document.getElementById('item_address').value;
+    geocoder.geocode({'address': address}, function(results, status) {
+        if (status === google.maps.GeocoderStatus.OK) {
+            resultsMap.setCenter(results[0].geometry.location);
+            var marker = new google.maps.Marker({
+                map: resultsMap,
+                position: results[0].geometry.location
+            });
+            var itemPosition = results[0].geometry.location;
+
+            document.getElementById('item_lng').value = itemPosition.lng();
+            console.log(itemPosition.lat());
+            console.log(itemPosition.lng());
+            document.getElementById('item_lat').value = itemPosition.lat();
+            document.getElementById('map_status').innerHTML = "<p class=\"bg-success\">Valid!</p>";
+
+            var infoWindow = new google.maps.InfoWindow({
+                map: map,
+                content: results[0].formatted_address});
+            //infoWindow.setPosition(itemPosition);
+            infoWindow.open(resultsMap, marker);
+        } else if(status == google.maps.GeocoderStatus.ZERO_RESULTS){
+            document.getElementById('map_status').innerHTML = "<p class=\"bg-danger\">No result for your input!</p>";
+            document.getElementById('item_lng').value = null;
+            document.getElementById('item_lat').value = null;
+        } else {
+            alert('Geocode was not successful for the following reason: ' + status);
+        }
+    });
+}
+$(document).on('ready page:load', function(event) {
+    // apply non-idempotent transformations to the body
+    initMap();
+});
+</script>
+<h1>Post an item</h1>
+<div class="row">
+  <div class="col-md-6 col-md-offset-3" id="post-item-form">
+    <%= form_for @item, html: {multipart: true} do |f| %>
+        <%= render 'shared/item_error_messages' %>
+        <%= f.label :title, "Name(less than 100 characters)" %>
+        <%= f.text_field :title %>
+
+        <%= f.label :description, "Description(less than 1000 characters)" %>
+        <%= f.text_area :description %>
+
+        <%= f.label :expire_time, style: "width:100%"%>
+        <%= f.date_select :expire_time, {start_year: Date.current.year}, {style: "display: inline; width: auto;margin-left:0px;"}%>
+
+
+        <%= f.label :category_id, style: "width: 100%"%>
+        <%= f.collection_select :category_id, Category.all, :id, :name, prompt: true%>
+
+        <%= f.label :address, style: "width: 100%"%>
+        <%= f.text_field :address, style: "width: 85%"%>
+        <%= button_tag "Locate", type: 'button', id: "locate" %>
+        <%= f.text_field :lng, style:"display:none" %>
+        <%= f.text_field :lat, style:"display:none" %>
+        <div id="map_status"></div>
+        <div id="map" style="width:90%; height: 300px;margin:10px;">
+
+        </div>
+
+        <%= f.label :avatar, "Upload Image" %>
+        <div class="fileinput fileinput-new" data-provides="fileinput">
+          <div class="fileinput-preview thumbnail" data-trigger="fileinput" style="width: 200px; height: 150px;"></div>
+          <div>
+            <span class="btn btn-default btn-file">
+              <span class="fileinput-new">Select image</span>
+              <span class="fileinput-exists">Change</span>
+              <%= f.file_field :avatar %>
+              <%= f.hidden_field :avatar_cache %>
+            </span>
+            <a href="#" class="btn btn-default fileinput-exists" data-dismiss="fileinput">Remove</a>
+          </div>
+        </div>
+
+        <%= f.submit "Post item", class: "btn btn-success" %>
+    <% end %>
+
+  </div>
+</div>

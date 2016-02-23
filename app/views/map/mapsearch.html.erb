@@ -1,0 +1,195 @@
+<% provide(:title, 'Social Recycle') %>
+
+<div class="row">
+  <div class="col-lg-12">
+    <h1 class="page-header">Nearby Items
+    </h1>
+  </div>
+</div>
+<div class="map col-md-8">
+      <h4>Address</h4>
+        <div id="floating-panel">
+<!--           <input id="address" type="textbox" value="UCSD, San Diego, CA"  style="width:80%">
+          <input id="submit" type="button" value="Search" class="btn btn-primary" style="margin-left:5px;margin-right:5px;margin-bottom:5px;width:18%">   -->
+        </div>
+  <div id="googleMap" style="width:100%;height:400px;">
+      </div>
+  <script>
+    var markers = [];
+    var currentPos = null;
+    var data = []
+    var id = []
+    var distance = 1;
+    var names = [];
+    function placeMarker(map, location, id, name) {
+      // console.log(location)
+      console.log("lat:"+location.lat()+" lng:"+location.lng())
+      var marker = new google.maps.Marker({
+        position: location,
+        map: map,
+      });
+      markers.push(marker);
+      google.maps.event.addListener(marker,'click',function() {
+        // alert("click on marker!");
+        window.location.href = "http://localhost:3000/items/"+id
+        // jump page here
+      });
+      google.maps.event.addListener(marker,'mouseover',function() {
+        // alert("hover on marker!");
+        // jump page here
+      });
+      var infowindow = new google.maps.InfoWindow({
+        content: '<h4>Item Name: ' + name +'</h4>'
+      });
+      infowindow.open(map,marker);
+    }
+    function clearMarkers() {
+      for (var i = 0; i < markers.length; i++) {
+        markers[i].setMap(null);
+      }
+    }
+    function showMarkers() {
+      setMapOnAll(c_map);
+    }
+    // function codeAddress(geocoder, map) {
+    //   var address = document.getElementById('address').value;
+    //   // var geocoder = new google.maps.Geocoder();
+    //   clearMarkers();
+    //   markers = [];
+    //   geocoder.geocode( { 'address': address}, 
+    //     function(results, status) {
+    //     if (status == google.maps.GeocoderStatus.OK) {
+    //       for (i in results)
+    //       {
+    //         placeMarker(map, results[i].geometry.location)
+    //       }
+    //     } else {
+    //       alert("Geocode was not successful for the following reason: " + status);
+    //     }
+    //   });
+    // }
+    function searchByDis(dis, tmpdata, ids, names) {
+      console.log(dis+" miles searching...")
+      clearMarkers();
+      markers = [];
+      data = tmpdata;
+      distance = dis;
+      id = ids
+      names = names
+    }
+    function initialize() {
+      var mapProp = {
+        zoom:15,
+        mapTypeId:google.maps.MapTypeId.ROADMAP,
+        center:new google.maps.LatLng(32.877348, -117.233825)
+      };
+      c_map=new google.maps.Map(document.getElementById("googleMap"),mapProp);
+      var geocoder = new google.maps.Geocoder();
+      // document.getElementById('submit').addEventListener('click', function() {
+      //   codeAddress(geocoder, c_map);
+      // });
+      for (var i = 0; i < data.length; i++) {
+        placeMarker(c_map, data[i], id[i], names[i])
+      }
+      var infoWindow = new google.maps.InfoWindow({map: c_map});
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          var pos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          currentPos = pos;
+          var circle = new google.maps.Circle({
+            strokeColor: '#FF0000',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#FF0000',
+            fillOpacity: 0.35,
+            map: c_map,
+            center: currentPos,
+            radius: 1000*distance
+          });
+          console.log("Your pos lat:"+pos.lat+" lng:"+pos.lng)
+          document.getElementById('lat').value = pos.lat
+          document.getElementById('lng').value = pos.lng
+          infoWindow.setPosition(pos);
+          infoWindow.setContent('You are here.');
+          c_map.setCenter(pos);
+        }, function() {
+          handleLocationError(true, infoWindow, c_map.getCenter());
+        });
+      } else {
+        // Browser doesn't support Geolocation
+        handleLocationError(false, infoWindow, c_map.getCenter());
+      }
+    }
+    $(document).on('ready page:load', function(event) {
+      // apply non-idempotent transformations to the body
+      initialize();
+    });
+    // window.onload=initialize;
+    // google.maps.event.addDomListener(window, 'load', initialize);
+    console.log('I\'working well');
+    // window.location.reload();
+  </script>
+</div>
+
+<div class="col-md-4">
+    <div class="row" style="margin-top:20px;">
+      <h4>Distance</h4>
+      <%= form_tag(map_search_path, method: "get") do %>
+          <%= text_field :lat, "lat", :id=>"lat", :style=>"display:none;" %>
+          <%= text_field :lng, "lng", :id=>"lng", :style=>"display:none;" %>
+          <div class="btn-group" data-toggle="buttons" >
+            <label id="one" for="one-km" class="btn btn-default"><%= radio_button_tag :distance, 1.0, id:"one-km", :style=>"display:none;" %>
+              1 km</label>
+
+            <label id="two" for="two-km" class="btn btn-default"><%= radio_button_tag :distance, 2.0, :id=>"two-km", :style=>"display:none;" %>
+              2 km</label>
+
+            <label id="five" for="five-km" class="btn btn-default"><%= radio_button_tag :distance, 5.0,  :id=>"five-km", :style=>"display:none;" %>
+              5 km</label>
+
+            <label id="ten" for="ten-km" class="btn btn-default"><%= radio_button_tag :distance, 10.0, :id=>"ten-km", :style=>"display:none;" %>
+              10 km</label>
+        </div>
+          <div class="row">
+            <%= submit_tag "Search",class: "btn btn-primary", style: "margin-top:10px; margin-left: 15px;" %>
+          </div>
+      <% end %>
+    </div>
+
+
+</div>
+
+<%= javascript_tag do %>
+    var data = []
+    var ids = []
+    var names = []
+    <% if @positions %> 
+      <% @positions.each do |p| %>
+        var lat = <%=j p.lat.to_json %>
+        var lng = <%=j p.lng.to_json %>
+        var id = <%=j p.id.to_json %>
+        var datum = new google.maps.LatLng(lat, lng)
+        var name = "<%=j p.title.to_s %>"
+        ids.push(id)
+        data.push(datum)
+        names.push(name)
+      <% end %>
+    <% end %>
+    <% distance = params[:distance] %>
+    <% if distance.to_i == 1 %>
+        $('#one').addClass('active')
+        searchByDis(1, data, ids, names)
+    <% elsif distance.to_i == 2 %>
+        $('#two').addClass('active')
+        searchByDis(2, data, ids, names)
+    <% elsif distance.to_i == 5 %>
+        $('#five').addClass('active')
+        searchByDis(5, data, ids, names)
+    <% elsif distance.to_i == 10 %>
+        $('#ten').addClass('active')
+        searchByDis(10, data, ids, names)
+    <% end %>
+<% end %>
